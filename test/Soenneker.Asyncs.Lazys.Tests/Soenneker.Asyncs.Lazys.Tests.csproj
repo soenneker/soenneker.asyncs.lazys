@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Soenneker.Asyncs.Lazys.csproj" />
+        <ProjectReference Include="..\..\src\Soenneker.Asyncs.Lazys\Soenneker.Asyncs.Lazys.csproj" />
     </ItemGroup>
 
     <ItemGroup>
