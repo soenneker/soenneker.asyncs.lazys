@@ -6,7 +6,6 @@ using AwesomeAssertions.Specialized;
 
 namespace Soenneker.Asyncs.Lazys.Tests;
 
-[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
 public sealed class AsyncLazyTests
 {
     [Test]
