@@ -1,16 +1,15 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using AwesomeAssertions.Specialized;
-using Xunit;
 
 namespace Soenneker.Asyncs.Lazys.Tests;
 
-[Collection("Collection")]
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
 public sealed class AsyncLazyTests
 {
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithTaskFactory_ReturnsValue()
     {
         // Arrange
@@ -29,7 +28,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithValueTaskFactory_ReturnsValue()
     {
         // Arrange
@@ -48,7 +47,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithTaskFactoryToken_ReturnsValue()
     {
         // Arrange
@@ -67,7 +66,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithValueTaskFactoryToken_ReturnsValue()
     {
         // Arrange
@@ -86,7 +85,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_MultipleCalls_ReturnsSameTask()
     {
         // Arrange
@@ -111,7 +110,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_ConcurrentCalls_OnlyCallsFactoryOnce()
     {
         // Arrange
@@ -142,7 +141,7 @@ public sealed class AsyncLazyTests
         }
     }
 
-    [Fact]
+    [Test]
     public void IsValueCreated_BeforeAccess_ReturnsFalse()
     {
         // Arrange
@@ -152,7 +151,7 @@ public sealed class AsyncLazyTests
         lazy.IsValueCreated.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public async ValueTask IsValueCreated_AfterAccess_ReturnsTrue()
     {
         // Arrange
@@ -166,7 +165,7 @@ public sealed class AsyncLazyTests
         lazy.IsValueCreated.Should().BeTrue();
     }
 
-    [Fact]
+    [Test]
     public async ValueTask IsValueCreated_AfterReset_ReturnsFalse()
     {
         // Arrange
@@ -180,7 +179,7 @@ public sealed class AsyncLazyTests
         lazy.IsValueCreated.Should().BeFalse();
     }
 
-    [Fact]
+    [Test]
     public async ValueTask Reset_AllowsFactoryToBeCalledAgain()
     {
         // Arrange
@@ -202,7 +201,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(2);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask TryGetCompletedSuccessfully_BeforeCompletion_ReturnsFalse()
     {
         // Arrange
@@ -218,7 +217,7 @@ public sealed class AsyncLazyTests
         value.Should().Be(default(int));
     }
 
-    [Fact]
+    [Test]
     public async ValueTask TryGetCompletedSuccessfully_AfterCompletion_ReturnsTrue()
     {
         // Arrange
@@ -233,7 +232,7 @@ public sealed class AsyncLazyTests
         value.Should().Be(42);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask TryGetCompletedSuccessfully_AfterException_ReturnsFalse()
     {
         // Arrange
@@ -256,7 +255,7 @@ public sealed class AsyncLazyTests
         value.Should().Be(default(int));
     }
 
-    [Fact]
+    [Test]
     public async ValueTask TryGetCompletedSuccessfully_AfterCancellation_ReturnsFalse()
     {
         // Arrange
@@ -281,7 +280,7 @@ public sealed class AsyncLazyTests
         value.Should().Be(default(int));
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetAwaiter_CanBeAwaited()
     {
         // Arrange
@@ -294,7 +293,7 @@ public sealed class AsyncLazyTests
         result.Should().Be(42);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithException_PropagatesException()
     {
         // Arrange
@@ -307,7 +306,7 @@ public sealed class AsyncLazyTests
         ex.Which.Message.Should().Be("Test exception");
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithCancellation_ThrowsOperationCanceledException()
     {
         // Arrange
@@ -320,7 +319,7 @@ public sealed class AsyncLazyTests
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithCancellationToken_ThrowsIfCancelledBeforeFactory()
     {
         // Arrange
@@ -337,7 +336,7 @@ public sealed class AsyncLazyTests
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
-    [Fact]
+    [Test]
     public void Constructor_WithNullTaskFactory_ThrowsArgumentNullException()
     {
         // Act & Assert
@@ -345,7 +344,7 @@ public sealed class AsyncLazyTests
         act.Should().Throw<ArgumentNullException>();
     }
 
-    [Fact]
+    [Test]
     public void Constructor_WithNullValueTaskFactory_ThrowsArgumentNullException()
     {
         // Act & Assert
@@ -353,7 +352,7 @@ public sealed class AsyncLazyTests
         act.Should().Throw<ArgumentNullException>();
     }
 
-    [Fact]
+    [Test]
     public void Constructor_WithNullTaskFactoryToken_ThrowsArgumentNullException()
     {
         // Act & Assert
@@ -361,7 +360,7 @@ public sealed class AsyncLazyTests
         act.Should().Throw<ArgumentNullException>();
     }
 
-    [Fact]
+    [Test]
     public void Constructor_WithNullValueTaskFactoryToken_ThrowsArgumentNullException()
     {
         // Act & Assert
@@ -369,7 +368,7 @@ public sealed class AsyncLazyTests
         act.Should().Throw<ArgumentNullException>();
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithAsyncFactory_HandlesAsyncOperation()
     {
         // Arrange
@@ -387,7 +386,7 @@ public sealed class AsyncLazyTests
         result.Should().Be(42);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_ValueTaskSynchronousCompletion_OptimizesCorrectly()
     {
         // Arrange
@@ -406,7 +405,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_ValueTaskAsynchronousCompletion_HandlesCorrectly()
     {
         // Arrange
@@ -427,7 +426,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(1);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask Reset_MultipleTimes_WorksCorrectly()
     {
         // Arrange
@@ -450,7 +449,7 @@ public sealed class AsyncLazyTests
         callCount.Should().Be(3);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_AfterReset_CreatesNewTask()
     {
         // Arrange
@@ -467,7 +466,7 @@ public sealed class AsyncLazyTests
         (await task2).Should().Be(42);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithStringValue_WorksCorrectly()
     {
         // Arrange
@@ -480,7 +479,7 @@ public sealed class AsyncLazyTests
         result.Should().Be("test");
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithNullableValue_WorksCorrectly()
     {
         // Arrange
@@ -493,7 +492,7 @@ public sealed class AsyncLazyTests
         result.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public async ValueTask TryGetCompletedSuccessfully_WithNullableValue_WorksCorrectly()
     {
         // Arrange
@@ -508,7 +507,7 @@ public sealed class AsyncLazyTests
         value.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_ConcurrentCallsAfterReset_OnlyCallsFactoryOnce()
     {
         // Arrange
@@ -542,7 +541,7 @@ public sealed class AsyncLazyTests
         }
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_WithCancellationToken_PassesTokenToFactory()
     {
         // Arrange
@@ -561,7 +560,7 @@ public sealed class AsyncLazyTests
         receivedToken.Should().Be(cts.Token);
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_ValueTaskFactoryWithException_HandlesException()
     {
         // Arrange
@@ -575,7 +574,7 @@ public sealed class AsyncLazyTests
         ex.Which.Message.Should().Be("Test");
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetTask_ValueTaskFactoryWithCancellation_HandlesCancellation()
     {
         // Arrange
