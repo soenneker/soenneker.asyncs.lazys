@@ -5,47 +5,104 @@
 
 # Soenneker.Asyncs.Lazys
 
-Thread-safe async lazy initializer that runs a factory once, shares the in-flight operation, and caches the result. Supports Task and ValueTask factories with optimized synchronous paths and optional reset.
+A thread-safe async lazy value that invokes a factory once, shares the in-flight `Task<T>`, and caches its final result, exception, or cancellation.
 
-## Install
+Use `AsyncLazy<T>` when several callers may need an expensive value and only the first access should start its creation.
+
+## Installation
 
 ```bash
 dotnet add package Soenneker.Asyncs.Lazys
 ```
 
-## Quick start
+## Create and await a lazy value
 
 ```csharp
-using Soenneker.Asyncs.Lazys.Abstract;
+using Soenneker.Asyncs.Lazys;
 
-IAsyncLazy<T> asyncLazy = /* resolve from DI */;
-var result = await asyncLazy.GetTask(default);
+var signingKeys = new AsyncLazy<IReadOnlyList<string>>(
+    async cancellationToken =>
+    {
+        return await LoadSigningKeys(cancellationToken);
+    });
+
+IReadOnlyList<string> keys = await signingKeys.GetTask(cancellationToken);
 ```
 
-Gets the task that represents the asynchronous initialization of the value.
+Concurrent calls return the same task, so the factory runs once and every caller observes the same outcome.
 
-## What you get
+`AsyncLazy<T>` itself is awaitable when no cancellation token needs to be supplied:
 
-- `IAsyncLazy<T>` — Thread-safe async lazy initializer that runs a factory once, shares the in-flight operation, and caches the result. Supports Task and ValueTask factories with optimized synchronous paths and optional reset.
+```csharp
+IReadOnlyList<string> keys = await signingKeys;
+```
 
-## API at a glance
+## Factory overloads
 
-| API | What it does | Result / important behavior |
-| --- | --- | --- |
-| `IAsyncLazy<T>.IsValueCreated` | Gets a value indicating whether the value has been created. | This property returns `true` once the factory has been invoked and the task has been created, regardless of whether the task has completed successfully, faulted, or been canceled. |
-| `IAsyncLazy<T>.GetTask(cancellationToken)` | Gets the task that represents the asynchronous initialization of the value. | A `Task{T}` that represents the asynchronous initialization of the value. The same task instance is returned for all subsequent calls, ensuring thread-safe sharing of the in-flight operation. |
-| `IAsyncLazy<T>.GetAwaiter()` | Gets an awaiter used to await the asynchronous initialization of the value. | A `TaskAwaiter{T}` instance that can be used to await the completion of the lazy initialization. |
-| `IAsyncLazy<T>.Reset()` | Resets the lazy initializer, allowing the factory to be invoked again on the next access. | After calling `Reset`, the cached task is cleared. The next call to `GetTask` or `GetAwaiter` will invoke the factory again, creating a new task. If the factory is currently executing, this method does not cancel the in-flight operation. The reset only affects future calls to get the value. |
-| `IAsyncLazy<T>.TryGetCompletedSuccessfully(value)` | Attempts to get the value if it has completed successfully. | `true` if the value was successfully retrieved (the task completed successfully); otherwise, `false`. |
+Factories can return either `Task<T>` or `ValueTask<T>`, with or without a cancellation token:
 
-## Important behavior
+```csharp
+new AsyncLazy<T>(Func<Task<T>> factory);
+new AsyncLazy<T>(Func<CancellationToken, Task<T>> factory);
+new AsyncLazy<T>(Func<ValueTask<T>> factory);
+new AsyncLazy<T>(Func<CancellationToken, ValueTask<T>> factory);
+```
 
-- `IAsyncLazy<T>.IsValueCreated`: This property returns `true` once the factory has been invoked and the task has been created, regardless of whether the task has completed successfully, faulted, or been canceled.
-- `IAsyncLazy<T>.GetTask(cancellationToken)`: On the first call, the factory is invoked and the resulting task is cached. Subsequent calls return the same cached task, ensuring that the factory is only executed once and all callers share the same in-flight operation. If a cancellation token is provided and the factory supports cancellation, it will be passed to the factory. If the operation is already in progress, the cancellation token is checked before returning the cached task.
-- `IAsyncLazy<T>.GetAwaiter()`: This method enables the `await` keyword to be used directly on instances of `IAsyncLazy{T}`, allowing for a more natural async/await syntax.
-- `IAsyncLazy<T>.Reset()`: After calling `Reset`, the cached task is cleared. The next call to `GetTask` or `GetAwaiter` will invoke the factory again, creating a new task. If the factory is currently executing, this method does not cancel the in-flight operation. The reset only affects future calls to get the value.
-- `IAsyncLazy<T>.TryGetCompletedSuccessfully(value)`: This method returns `false` if: The factory has not been invoked yet (`IsValueCreated` is `false`). The task is still in progress. The task faulted or was canceled. This method does not throw exceptions. It is a non-blocking way to check if the value is available without awaiting the task.
+Synchronous `ValueTask<T>` completion is converted directly into a completed cached task.
 
-## Practical notes
+## Cancellation semantics
 
-- Cancellation stops pending work; it does not undo work that has already completed.
+The token supplied by the caller that starts initialization is passed to a token-aware factory. Once the cached task exists, later calls return it directly; their cancellation tokens do not cancel waiting and are not passed to the factory.
+
+If each caller needs independently cancellable waiting while the shared work continues, apply cancellation while awaiting the returned task:
+
+```csharp
+T value = await lazy.GetTask().WaitAsync(cancellationToken);
+```
+
+A token already cancelled before the first initialization attempt prevents the factory from running and throws `OperationCanceledException` to that caller. Cancellation produced by the factory is cached like any other result until `Reset` is called.
+
+## Exceptions and retries
+
+Synchronous factory exceptions are captured into the cached task rather than thrown directly from `GetTask`. Asynchronous failures are naturally retained by that task. Every caller then observes the same exception.
+
+To permit a new attempt after a failure or cancellation, explicitly reset the lazy:
+
+```csharp
+try
+{
+    return await lazy.GetTask(cancellationToken);
+}
+catch
+{
+    lazy.Reset();
+    throw;
+}
+```
+
+Coordinate reset policy at the owning-service level. If `Reset` races with an in-flight factory, it does not cancel that work; a later caller can start a second factory while callers holding the old task still await the first one.
+
+## Inspect without waiting
+
+`IsValueCreated` means a task has been cached. It does not mean the task completed successfully.
+
+Use `TryGetCompletedSuccessfully` for a non-blocking successful-result check:
+
+```csharp
+if (lazy.TryGetCompletedSuccessfully(out T? value))
+{
+    Use(value);
+}
+```
+
+It returns `false` before initialization, while work is running, and after a fault or cancellation. It does not throw a cached exception.
+
+## API
+
+| Member | Behavior |
+| --- | --- |
+| `GetTask(CancellationToken)` | Creates or returns the shared cached task. |
+| `await lazy` | Awaits `GetTask()` without a token. |
+| `IsValueCreated` | Indicates whether the cached task exists. |
+| `TryGetCompletedSuccessfully(out T?)` | Reads an already-successful result without blocking. |
+| `Reset()` | Clears the cached task so a later access invokes the factory again. |
