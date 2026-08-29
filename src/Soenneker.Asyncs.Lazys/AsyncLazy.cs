@@ -6,7 +6,7 @@ using Soenneker.Asyncs.Lazys.Abstract;
 
 namespace Soenneker.Asyncs.Lazys;
 
-///<inheritdoc cref="IAsyncLazy{T}"/>
+/// <inheritdoc cref="IAsyncLazy{T}"/>
 public sealed class AsyncLazy<T> : IAsyncLazy<T>
 {
     private readonly object _gate = new();
