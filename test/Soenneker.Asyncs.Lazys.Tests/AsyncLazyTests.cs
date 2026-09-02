@@ -9,7 +9,7 @@ namespace Soenneker.Asyncs.Lazys.Tests;
 public sealed class AsyncLazyTests
 {
     [Test]
-    public async ValueTask GetTask_WithTaskFactory_ReturnsValue()
+    public async ValueTask GetTask_WithTaskFactory_ReturnsValue(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -20,7 +20,7 @@ public sealed class AsyncLazyTests
         });
 
         // Act
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -28,7 +28,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithValueTaskFactory_ReturnsValue()
+    public async ValueTask GetTask_WithValueTaskFactory_ReturnsValue(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -39,7 +39,7 @@ public sealed class AsyncLazyTests
         });
 
         // Act
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -47,7 +47,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithTaskFactoryToken_ReturnsValue()
+    public async ValueTask GetTask_WithTaskFactoryToken_ReturnsValue(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -58,7 +58,7 @@ public sealed class AsyncLazyTests
         });
 
         // Act
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -66,7 +66,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithValueTaskFactoryToken_ReturnsValue()
+    public async ValueTask GetTask_WithValueTaskFactoryToken_ReturnsValue(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -77,7 +77,7 @@ public sealed class AsyncLazyTests
         });
 
         // Act
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -85,7 +85,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_MultipleCalls_ReturnsSameTask()
+    public async ValueTask GetTask_MultipleCalls_ReturnsSameTask(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -96,9 +96,9 @@ public sealed class AsyncLazyTests
         });
 
         // Act
-        Task<int> task1 = lazy.GetTask();
-        Task<int> task2 = lazy.GetTask();
-        Task<int> task3 = lazy.GetTask();
+        Task<int> task1 = lazy.GetTask(cancellationToken: cancellationToken);
+        Task<int> task2 = lazy.GetTask(cancellationToken: cancellationToken);
+        Task<int> task3 = lazy.GetTask(cancellationToken: cancellationToken);
 
         await Task.WhenAll(task1, task2, task3);
 
@@ -110,7 +110,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_ConcurrentCalls_OnlyCallsFactoryOnce()
+    public async ValueTask GetTask_ConcurrentCalls_OnlyCallsFactoryOnce(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -126,7 +126,7 @@ public sealed class AsyncLazyTests
         var tasks = new Task<int>[10];
         for (var i = 0; i < 10; i++)
         {
-            tasks[i] = lazy.GetTask();
+            tasks[i] = lazy.GetTask(cancellationToken: cancellationToken);
         }
 
         await Task.WhenAll(tasks);
@@ -151,25 +151,25 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask IsValueCreated_AfterAccess_ReturnsTrue()
+    public async ValueTask IsValueCreated_AfterAccess_ReturnsTrue(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<int>(() => Task.FromResult(42));
 
         // Act
-        _ = lazy.GetTask();
-        await lazy.GetTask();
+        _ = lazy.GetTask(cancellationToken: cancellationToken);
+        await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         lazy.IsValueCreated.Should().BeTrue();
     }
 
     [Test]
-    public async ValueTask IsValueCreated_AfterReset_ReturnsFalse()
+    public async ValueTask IsValueCreated_AfterReset_ReturnsFalse(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<int>(() => Task.FromResult(42));
-        await lazy.GetTask();
+        await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Act
         lazy.Reset();
@@ -179,7 +179,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask Reset_AllowsFactoryToBeCalledAgain()
+    public async ValueTask Reset_AllowsFactoryToBeCalledAgain(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -189,11 +189,11 @@ public sealed class AsyncLazyTests
             return Task.FromResult(42);
         });
 
-        await lazy.GetTask();
+        await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Act
         lazy.Reset();
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -201,14 +201,14 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask TryGetCompletedSuccessfully_BeforeCompletion_ReturnsFalse()
+    public async ValueTask TryGetCompletedSuccessfully_BeforeCompletion_ReturnsFalse(CancellationToken cancellationToken)
     {
         // Arrange
         var tcs = new TaskCompletionSource<int>();
         var lazy = new AsyncLazy<int>(() => tcs.Task);
 
         // Act
-        _ = lazy.GetTask();
+        _ = lazy.GetTask(cancellationToken: cancellationToken);
         bool success = lazy.TryGetCompletedSuccessfully(out int value);
 
         // Assert
@@ -217,13 +217,13 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask TryGetCompletedSuccessfully_AfterCompletion_ReturnsTrue()
+    public async ValueTask TryGetCompletedSuccessfully_AfterCompletion_ReturnsTrue(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<int>(() => Task.FromResult(42));
 
         // Act
-        await lazy.GetTask();
+        await lazy.GetTask(cancellationToken: cancellationToken);
         bool success = lazy.TryGetCompletedSuccessfully(out int value);
 
         // Assert
@@ -232,7 +232,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask TryGetCompletedSuccessfully_AfterException_ReturnsFalse()
+    public async ValueTask TryGetCompletedSuccessfully_AfterException_ReturnsFalse(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<int>(() => Task.FromException<int>(new InvalidOperationException("Test")));
@@ -240,7 +240,7 @@ public sealed class AsyncLazyTests
         // Act
         try
         {
-            await lazy.GetTask();
+            await lazy.GetTask(cancellationToken: cancellationToken);
         }
         catch
         {
@@ -293,14 +293,14 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithException_PropagatesException()
+    public async ValueTask GetTask_WithException_PropagatesException(CancellationToken cancellationToken)
     {
         // Arrange
         var exception = new InvalidOperationException("Test exception");
         var lazy = new AsyncLazy<int>(() => Task.FromException<int>(exception));
 
         // Act & Assert
-        Func<Task<int>> act = async () => await lazy.GetTask();
+        Func<Task<int>> act = async () => await lazy.GetTask(cancellationToken: cancellationToken);
         ExceptionAssertions<InvalidOperationException>? ex = await act.Should().ThrowAsync<InvalidOperationException>();
         ex.Which.Message.Should().Be("Test exception");
     }
@@ -368,7 +368,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithAsyncFactory_HandlesAsyncOperation()
+    public async ValueTask GetTask_WithAsyncFactory_HandlesAsyncOperation(CancellationToken cancellationToken)
     {
         // Arrange
         Func<ValueTask<int>> factory = async () =>
@@ -379,14 +379,14 @@ public sealed class AsyncLazyTests
         var lazy = new AsyncLazy<int>(factory);
 
         // Act
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
     }
 
     [Test]
-    public async ValueTask GetTask_ValueTaskSynchronousCompletion_OptimizesCorrectly()
+    public async ValueTask GetTask_ValueTaskSynchronousCompletion_OptimizesCorrectly(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -397,7 +397,7 @@ public sealed class AsyncLazyTests
         });
 
         // Act
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -405,7 +405,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_ValueTaskAsynchronousCompletion_HandlesCorrectly()
+    public async ValueTask GetTask_ValueTaskAsynchronousCompletion_HandlesCorrectly(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -418,7 +418,7 @@ public sealed class AsyncLazyTests
         var lazy = new AsyncLazy<int>(factory);
 
         // Act
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -426,7 +426,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask Reset_MultipleTimes_WorksCorrectly()
+    public async ValueTask Reset_MultipleTimes_WorksCorrectly(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -437,11 +437,11 @@ public sealed class AsyncLazyTests
         });
 
         // Act
-        await lazy.GetTask();
+        await lazy.GetTask(cancellationToken: cancellationToken);
         lazy.Reset();
-        await lazy.GetTask();
+        await lazy.GetTask(cancellationToken: cancellationToken);
         lazy.Reset();
-        int result = await lazy.GetTask();
+        int result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be(42);
@@ -449,16 +449,16 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_AfterReset_CreatesNewTask()
+    public async ValueTask GetTask_AfterReset_CreatesNewTask(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<int>(() => Task.FromResult(42));
-        Task<int> task1 = lazy.GetTask();
+        Task<int> task1 = lazy.GetTask(cancellationToken: cancellationToken);
         await task1;
 
         // Act
         lazy.Reset();
-        Task<int> task2 = lazy.GetTask();
+        Task<int> task2 = lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         task2.Should().NotBeSameAs(task1);
@@ -466,39 +466,39 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithStringValue_WorksCorrectly()
+    public async ValueTask GetTask_WithStringValue_WorksCorrectly(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<string>(() => Task.FromResult("test"));
 
         // Act
-        string result = await lazy.GetTask();
+        string result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().Be("test");
     }
 
     [Test]
-    public async ValueTask GetTask_WithNullableValue_WorksCorrectly()
+    public async ValueTask GetTask_WithNullableValue_WorksCorrectly(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<int?>(() => Task.FromResult<int?>(null));
 
         // Act
-        int? result = await lazy.GetTask();
+        int? result = await lazy.GetTask(cancellationToken: cancellationToken);
 
         // Assert
         result.Should().BeNull();
     }
 
     [Test]
-    public async ValueTask TryGetCompletedSuccessfully_WithNullableValue_WorksCorrectly()
+    public async ValueTask TryGetCompletedSuccessfully_WithNullableValue_WorksCorrectly(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<int?>(() => Task.FromResult<int?>(null));
 
         // Act
-        await lazy.GetTask();
+        await lazy.GetTask(cancellationToken: cancellationToken);
         bool success = lazy.TryGetCompletedSuccessfully(out int? value);
 
         // Assert
@@ -507,7 +507,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_ConcurrentCallsAfterReset_OnlyCallsFactoryOnce()
+    public async ValueTask GetTask_ConcurrentCallsAfterReset_OnlyCallsFactoryOnce(CancellationToken cancellationToken)
     {
         // Arrange
         var callCount = 0;
@@ -519,14 +519,14 @@ public sealed class AsyncLazyTests
         };
         var lazy = new AsyncLazy<int>(factory);
 
-        await lazy.GetTask();
+        await lazy.GetTask(cancellationToken: cancellationToken);
         lazy.Reset();
 
         // Act
         var tasks = new Task<int>[10];
         for (var i = 0; i < 10; i++)
         {
-            tasks[i] = lazy.GetTask();
+            tasks[i] = lazy.GetTask(cancellationToken: cancellationToken);
         }
 
         await Task.WhenAll(tasks);
@@ -560,7 +560,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_ValueTaskFactoryWithException_HandlesException()
+    public async ValueTask GetTask_ValueTaskFactoryWithException_HandlesException(CancellationToken cancellationToken)
     {
         // Arrange
         var exception = new InvalidOperationException("Test");
@@ -568,7 +568,7 @@ public sealed class AsyncLazyTests
         var lazy = new AsyncLazy<int>(factory);
 
         // Act & Assert
-        Func<Task<int>> act = async () => await lazy.GetTask();
+        Func<Task<int>> act = async () => await lazy.GetTask(cancellationToken: cancellationToken);
         ExceptionAssertions<InvalidOperationException>? ex = await act.Should().ThrowAsync<InvalidOperationException>();
         ex.Which.Message.Should().Be("Test");
     }
