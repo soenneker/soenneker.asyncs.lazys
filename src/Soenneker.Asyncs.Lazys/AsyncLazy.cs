@@ -91,36 +91,8 @@ public sealed class AsyncLazy<T> : IAsyncLazy<T>
     /// Avoids ValueTask.AsTask() allocation when the ValueTask completed synchronously.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Task<T> CreateFromValueTask(ValueTask<T> valueTask)
-    {
-        if (valueTask.IsCompletedSuccessfully)
-        {
-            // No allocation besides Task.FromResult's cached/allocated Task.
-            return Task.FromResult(valueTask.Result);
-        }
+    private static Task<T> CreateFromValueTask(ValueTask<T> valueTask) => valueTask.AsTask();
 
-        if (valueTask.IsCompleted)
-        {
-            // Completed synchronously but not successfully: capture exception/cancel without awaiting.
-            try
-            {
-                return Task.FromResult(valueTask.Result);
-            }
-            catch (OperationCanceledException oce)
-            {
-                return Task.FromCanceled<T>(oce.CancellationToken);
-            }
-            catch (Exception ex)
-            {
-                return Task.FromException<T>(ex);
-            }
-        }
-
-        // Still pending: fall back to Task representation (may allocate if not already Task-backed).
-        return valueTask.AsTask();
-    }
-
-    // Allows: await _authState;
     public TaskAwaiter<T> GetAwaiter() => GetTask()
         .GetAwaiter();
 
