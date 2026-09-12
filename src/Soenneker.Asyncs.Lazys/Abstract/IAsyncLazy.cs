@@ -37,7 +37,7 @@ public interface IAsyncLazy<T>
     /// </para>
     /// <para>
     /// If a cancellation token is provided and the factory supports cancellation, it will be passed to the factory.
-    /// If the operation is already in progress, the cancellation token is checked before returning the cached task.
+    /// Once an operation is cached, subsequent callers receive it regardless of their cancellation token.
     /// </para>
     /// </remarks>
     Task<T> GetTask(CancellationToken cancellationToken = default);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,26 +6,21 @@ using Soenneker.Asyncs.Lazys.Abstract;
 
 namespace Soenneker.Asyncs.Lazys;
 
-/// <inheritdoc cref="IAsyncLazy{T}"/>
 public sealed class AsyncLazy<T> : IAsyncLazy<T>
 {
     private readonly object _gate = new();
 
-    private readonly Func<Task<T>>? _taskFactory;
-    private readonly Func<CancellationToken, Task<T>>? _taskFactoryToken;
-
-    private readonly Func<ValueTask<T>>? _valueTaskFactory;
-    private readonly Func<CancellationToken, ValueTask<T>>? _valueTaskFactoryToken;
+    private readonly Delegate _factory;
 
     private Task<T>? _task;
 
-    public AsyncLazy(Func<Task<T>> factory) => _taskFactory = factory ?? throw new ArgumentNullException(nameof(factory));
+    public AsyncLazy(Func<Task<T>> factory) => _factory = factory ?? throw new ArgumentNullException(nameof(factory));
 
-    public AsyncLazy(Func<CancellationToken, Task<T>> factory) => _taskFactoryToken = factory ?? throw new ArgumentNullException(nameof(factory));
+    public AsyncLazy(Func<CancellationToken, Task<T>> factory) => _factory = factory ?? throw new ArgumentNullException(nameof(factory));
 
-    public AsyncLazy(Func<ValueTask<T>> factory) => _valueTaskFactory = factory ?? throw new ArgumentNullException(nameof(factory));
+    public AsyncLazy(Func<ValueTask<T>> factory) => _factory = factory ?? throw new ArgumentNullException(nameof(factory));
 
-    public AsyncLazy(Func<CancellationToken, ValueTask<T>> factory) => _valueTaskFactoryToken = factory ?? throw new ArgumentNullException(nameof(factory));
+    public AsyncLazy(Func<CancellationToken, ValueTask<T>> factory) => _factory = factory ?? throw new ArgumentNullException(nameof(factory));
 
     public bool IsValueCreated => Volatile.Read(ref _task) is not null;
 
@@ -64,34 +59,30 @@ public sealed class AsyncLazy<T> : IAsyncLazy<T>
     {
         try
         {
-            // Prefer ValueTask factories if supplied.
-            if (_valueTaskFactoryToken is not null)
-                return CreateFromValueTask(_valueTaskFactoryToken(cancellationToken));
-
-            if (_valueTaskFactory is not null)
-                return CreateFromValueTask(_valueTaskFactory());
-
-            if (_taskFactoryToken is not null)
-                return _taskFactoryToken(cancellationToken);
-
-            return _taskFactory!();
+            return _factory switch
+            {
+                Func<ValueTask<T>> factory => factory().AsTask(),
+                Func<Task<T>> factory => factory(),
+                Func<CancellationToken, ValueTask<T>> factory => factory(cancellationToken).AsTask(),
+                _ => ((Func<CancellationToken, Task<T>>)_factory)(cancellationToken)
+            };
         }
         catch (OperationCanceledException oce)
         {
             // Preserve the token when possible.
-            return Task.FromCanceled<T>(oce.CancellationToken.CanBeCanceled ? oce.CancellationToken : cancellationToken);
+            CancellationToken token = oce.CancellationToken.CanBeCanceled ? oce.CancellationToken : cancellationToken;
+            if (token.IsCancellationRequested)
+                return Task.FromCanceled<T>(token);
+
+            var completion = new TaskCompletionSource<T>();
+            completion.SetCanceled(token);
+            return completion.Task;
         }
         catch (Exception ex)
         {
             return Task.FromException<T>(ex);
         }
     }
-
-    /// <summary>
-    /// Avoids ValueTask.AsTask() allocation when the ValueTask completed synchronously.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Task<T> CreateFromValueTask(ValueTask<T> valueTask) => valueTask.AsTask();
 
     public TaskAwaiter<T> GetAwaiter() => GetTask()
         .GetAwaiter();
@@ -102,7 +93,7 @@ public sealed class AsyncLazy<T> : IAsyncLazy<T>
     {
         Task<T>? task = Volatile.Read(ref _task);
 
-        if (task is null || task.Status != TaskStatus.RanToCompletion)
+        if (task is null || !task.IsCompletedSuccessfully)
         {
             value = default;
             return false;
