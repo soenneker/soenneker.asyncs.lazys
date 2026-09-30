@@ -9,7 +9,7 @@ public sealed class LazyRegressionTests
     [Test]
     [Arguments(false)]
     [Arguments(true)]
-    public async Task Synchronous_cancellation_is_cached_even_without_a_canceled_token(bool hasToken)
+    public async ValueTask Synchronous_cancellation_is_cached_even_without_a_canceled_token(bool hasToken)
     {
         using var cancellation = new CancellationTokenSource();
         CancellationToken token = hasToken ? cancellation.Token : default;
