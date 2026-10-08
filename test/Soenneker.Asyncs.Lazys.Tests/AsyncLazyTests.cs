@@ -117,7 +117,7 @@ public sealed class AsyncLazyTests
         Func<ValueTask<int>> factory = async () =>
         {
             Interlocked.Increment(ref callCount);
-            await Task.Delay(100);
+            await Task.Delay(100, cancellationToken: cancellationToken);
             return 42;
         };
         var lazy = new AsyncLazy<int>(factory);
@@ -255,7 +255,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask TryGetCompletedSuccessfully_AfterCancellation_ReturnsFalse()
+    public async ValueTask TryGetCompletedSuccessfully_AfterCancellation_ReturnsFalse(CancellationToken cancellationToken)
     {
         // Arrange
         var cts = new CancellationTokenSource();
@@ -280,7 +280,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetAwaiter_CanBeAwaited()
+    public async ValueTask GetAwaiter_CanBeAwaited(CancellationToken cancellationToken)
     {
         // Arrange
         var lazy = new AsyncLazy<int>(() => Task.FromResult(42));
@@ -306,7 +306,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithCancellation_ThrowsOperationCanceledException()
+    public async ValueTask GetTask_WithCancellation_ThrowsOperationCanceledException(CancellationToken cancellationToken)
     {
         // Arrange
         var cts = new CancellationTokenSource();
@@ -319,7 +319,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithCancellationToken_ThrowsIfCancelledBeforeFactory()
+    public async ValueTask GetTask_WithCancellationToken_ThrowsIfCancelledBeforeFactory(CancellationToken cancellationToken)
     {
         // Arrange
         var cts = new CancellationTokenSource();
@@ -373,7 +373,7 @@ public sealed class AsyncLazyTests
         // Arrange
         Func<ValueTask<int>> factory = async () =>
         {
-            await Task.Delay(50);
+            await Task.Delay(50, cancellationToken: cancellationToken);
             return 42;
         };
         var lazy = new AsyncLazy<int>(factory);
@@ -412,7 +412,7 @@ public sealed class AsyncLazyTests
         Func<ValueTask<int>> factory = async () =>
         {
             callCount++;
-            await Task.Delay(50);
+            await Task.Delay(50, cancellationToken: cancellationToken);
             return 42;
         };
         var lazy = new AsyncLazy<int>(factory);
@@ -514,7 +514,7 @@ public sealed class AsyncLazyTests
         Func<ValueTask<int>> factory = async () =>
         {
             Interlocked.Increment(ref callCount);
-            await Task.Delay(100);
+            await Task.Delay(100, cancellationToken: cancellationToken);
             return 42;
         };
         var lazy = new AsyncLazy<int>(factory);
@@ -541,7 +541,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_WithCancellationToken_PassesTokenToFactory()
+    public async ValueTask GetTask_WithCancellationToken_PassesTokenToFactory(CancellationToken cancellationToken)
     {
         // Arrange
         CancellationToken receivedToken = default;
@@ -574,7 +574,7 @@ public sealed class AsyncLazyTests
     }
 
     [Test]
-    public async ValueTask GetTask_ValueTaskFactoryWithCancellation_HandlesCancellation()
+    public async ValueTask GetTask_ValueTaskFactoryWithCancellation_HandlesCancellation(CancellationToken cancellationToken)
     {
         // Arrange
         var cts = new CancellationTokenSource();

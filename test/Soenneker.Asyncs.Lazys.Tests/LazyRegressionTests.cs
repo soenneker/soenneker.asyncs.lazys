@@ -9,7 +9,7 @@ public sealed class LazyRegressionTests
     [Test]
     [Arguments(false)]
     [Arguments(true)]
-    public async ValueTask Synchronous_cancellation_is_cached_even_without_a_canceled_token(bool hasToken)
+    public async ValueTask Synchronous_cancellation_is_cached_even_without_a_canceled_token(bool hasToken, CancellationToken cancellationToken)
     {
         using var cancellation = new CancellationTokenSource();
         CancellationToken token = hasToken ? cancellation.Token : default;
@@ -19,8 +19,8 @@ public sealed class LazyRegressionTests
             calls++;
             throw new OperationCanceledException(token);
         }));
-        Task<int> first = lazy.GetTask();
-        Task<int> second = lazy.GetTask();
+        Task<int> first = lazy.GetTask(cancellationToken: cancellationToken);
+        Task<int> second = lazy.GetTask(cancellationToken: cancellationToken);
         await Assert.That(ReferenceEquals(first, second)).IsTrue();
         await Assert.That(first.IsCanceled).IsTrue();
         await Assert.That(calls).IsEqualTo(1);
